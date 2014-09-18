@@ -1,0 +1,193 @@
+#!/bin/bash
+
+usage()
+{
+cat <<EOF
+usage: $0 options
+
+This script run the test1 or test2 over a machine.
+
+OPTIONS:
+   -h             Show this message
+   -C integer     Number of cores
+   -N integer     Number of steps
+   -x integer     Number of cells in longitudinal direction
+   -y integer     Number of cells in transversal direction
+   -n integer     Number of particles
+   -p integer     Plot frequency
+   -L integer     line save frequency
+   -T integer     statistics frequency
+   -s float       Sigma of particle position
+   -S float       Sigma of momentum of particles
+   -Q float       Total charge
+   -l float       Length of domain in longitudinal direction
+   -w float       Width of domain in transversal direction
+   -P float       bending angle
+   -B float       magnetic field strength
+   -I             dont calculate initial conditions of fields
+   -r filename    restart with data taken from file
+EOF
+}
+
+NP=1
+STEPS=10
+NX=2048
+NY=512
+PLOTFREQ=100
+LINEFREQ=100
+STATFREQ=100
+NUMP=250000
+SIGMAX=0.007
+SIGMAP=0
+TOTALQ=0.05543811265131344
+LENGTH=0.1266875
+PHI=0.0
+BZ=0.0
+WIDTH=0.253375
+INITIALS=
+RESTART=""
+
+MAXWADIS_PATH=
+if [ "${MAXWADIS_DIR}" != "" ]; then
+    MAXWADIS_PATH="${MAXWADIS_DIR}/"
+    if [ ! -f ${MAXWADIS_PATH}maxwadis ]; then
+        echo "${MAXWADIS_PATH}maxwadis does not exist"
+        exit 1
+    fi
+    echo "using ${MAXWADIS_PATH}maxwadis"
+fi
+
+echo "echo \"LAST INVOCATION ---\"" > last_invocation.sh
+echo "echo \"$0 $@\"" >> last_invocation.sh
+echo "echo" >> last_invocation.sh
+echo "echo" >> last_invocation.sh
+echo "$0 $@" >> last_invocation.sh
+chmod u+x last_invocation.sh
+
+while getopts “hC:N:x:y:n:p:L:T:s:S:P:B:Q:l:w:o:a:I” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         C)
+             NP=$OPTARG
+             ;;
+         N)
+             STEPS=$OPTARG
+             ;;
+         x)
+             NX=$OPTARG
+             ;;
+         y)
+             NY=$OPTARG
+             ;;
+	 n)
+             NUMP=$OPTARG
+             ;;
+         p)
+             PLOTFREQ=$OPTARG
+             ;;
+         L)
+             LINEFREQ=$OPTARG
+             ;;
+         T)
+             STATFREQ=$OPTARG
+             ;;
+         s)
+             SIGMAX=$OPTARG
+             ;;
+         S)
+             SIGMAP=$OPTARG
+             ;;
+	 P)
+             PHI=$OPTARG
+             ;;
+	 B)
+	     BZ=$OPTARG
+	     ;;
+         Q)
+             TOTALQ=$OPTARG
+             ;;
+         l)
+             LENGTH=$OPTARG
+             ;;
+         w)
+             WIDTH=$OPTARG
+             ;;
+         I)
+             INITIALS="-I"
+             ;;
+         r)
+             RESTART="-r $OPTARG"
+             ;;
+         ?)
+             usage
+             exit 1
+             ;;
+     esac
+done
+
+if [ ! -d "Data" ]; then
+    mkdir Data;
+else
+    rm -rf Data/*
+fi
+
+if [ "$RESTART" = "" ];
+then
+    rm -rf Output.h5part
+else
+    NAMELENGTH=${#RESTART}
+    if [ ! -f "${RESTART:3:$NAMELENGTH}" ];
+    then
+        NAMELENGTH=${#RESTART}
+        echo "file ${RESTART:3:$NAMELENGTH} does not exist!"
+	exit
+    fi
+fi
+
+cat > maxwadis_${NP}.out <<EOF
+mpirun -np ${NP} maxwadis --commlib mpi --debug 5 --info 5 -d
+       --phi ${PHI} --Bz ${BZ} -N ${STEPS} -x ${NX} -y ${NY} --length ${LENGTH} --width ${WIDTH}
+       --Np ${NUMP} --Ekin 150.0 --sigma_x ${SIGMAX} --sigma_p ${SIGMAP} --Qtotal ${TOTALQ} --mean_Rx 0.05 --mean_Ry 0.1266875
+       --plotmodulus ${PLOTFREQ} --linemodulus ${LINEFREQ} --statmodulus ${STATFREQ} $INITIALS ${RESTART}
+       2>&1 | tee -a maxwadis_${NP}.out
+
+
+EOF
+cat maxwadis_${NP}.out
+
+mpirun \
+    -np ${NP} \
+    ${MAXWADIS_PATH}maxwadis \
+    --commlib mpi \
+    --debug 5 \
+    --info 5 \
+    -d \
+    --phi ${PHI} \
+    --Bz ${BZ} \
+    -N ${STEPS} \
+    -x ${NX} \
+    -y ${NY} \
+    --length ${LENGTH} \
+    --width ${WIDTH} \
+    --Np ${NUMP} \
+    --Ekin 150.0 \
+    --sigma_x ${SIGMAX} \
+    --sigma_p ${SIGMAP} \
+    --Qtotal ${TOTALQ} \
+    --mean_Rx 0.05 \
+    --mean_Ry 0.1266875 \
+    --plotmodulus ${PLOTFREQ} \
+    --linemodulus ${PLOTFREQ} \
+    --statmodulus ${STATFREQ} \
+    $INITIALS \
+    ${RESTART} \
+    2>&1 |tee -a maxwadis_${NP}.out
+
+cp maxwadis_${NP}.out Data/
+#rm ~/Data.tar
+#tar cf Data.tar Data/
+#mv Data.tar ~/

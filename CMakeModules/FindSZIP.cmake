@@ -1,0 +1,33 @@
+#
+# Find SZIP includes and library
+#
+# SZIP 
+#
+# SZIP_LIBRARY     - qualified libraries to link against.
+# SZIP_FOUND       - do not attempt to use if "no" or undefined.
+
+SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
+FIND_LIBRARY(SZIP_LIBRARY sz
+  PATHS $ENV{SZIP_LIBRARY_PATH}
+  NO_DEFAULT_PATH
+)
+
+FIND_LIBRARY(SZIP_LIBRARY sz
+  /usr/lib 
+  /usr/local/lib
+)
+
+IF(SZIP_LIBRARY)
+    SET( SZIP_FOUND "YES" )
+ENDIF(SZIP_LIBRARY)
+
+IF (SZIP_FOUND)
+   IF (NOT SZIP_FIND_QUIETLY)
+      MESSAGE(STATUS "Found SZIP: ${SZIP_LIBRARY}")
+   ENDIF (NOT SZIP_FIND_QUIETLY)
+ELSE (SZIP_FOUND)
+   IF (SZIP_FIND_REQUIRED)
+      MESSAGE(FATAL_ERROR "Could not find SZIP!")
+   ENDIF (SZIP_FIND_REQUIRED)
+ENDIF (SZIP_FOUND)

@@ -1,0 +1,43 @@
+#
+# Find OpenSSL includes and library
+#
+# OpenSSL
+#
+# OPENSSL_INCLUDE_DIR - where to find openssl/md5.h
+# OPENSSL_LIBRARY     - qualified libraries to link against.
+# OPENSSL_FOUND       - do not attempt to use if "no" or undefined.
+
+SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
+FIND_PATH(OPENSSL_INCLUDE_DIR openssl/md5.h
+  PATHS $ENV{OPENSSL_INCLUDE_PATH}/include
+  NO_DEFAULT_PATH
+)
+FIND_PATH(OPENSSL_INCLUDE_DIR openssl/md5.h
+  /usr/include
+  /usr/local/include
+)
+
+FIND_LIBRARY(OPENSSL_LIBRARY crypto
+  PATHS $ENV{OPENSSL_LIBRARY_PATH}
+  NO_DEFAULT_PATH
+)
+
+FIND_LIBRARY(OPENSSL_LIBRARY crypto
+  /usr/lib
+  /usr/local/lib
+)
+
+IF(OPENSSL_LIBRARY)
+    SET( OPENSSL_FOUND "YES" )
+ENDIF(OPENSSL_LIBRARY)
+
+IF (OPENSSL_FOUND)
+   IF (NOT OPENSSL_FIND_QUIETLY)
+      MESSAGE(STATUS "Found OPENSSL: ${OPENSSL_LIBRARY}")
+   ENDIF (NOT OPENSSL_FIND_QUIETLY)
+ELSE (OPENSSL_FOUND)
+   IF (OPENSSL_FIND_REQUIRED)
+      MESSAGE(FATAL_ERROR "Could not find OPENSSL!")
+   ENDIF (OPENSSL_FIND_REQUIRED)
+ENDIF (OPENSSL_FOUND)
